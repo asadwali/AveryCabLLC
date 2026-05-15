@@ -1,7 +1,9 @@
+import 'package:avery_cab_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/order.dart';
 
-class OrderCard extends StatelessWidget {
+class OrderCard extends StatefulWidget {
   final Order order;
   final VoidCallback onView;
   final VoidCallback onEdit;
@@ -14,14 +16,44 @@ class OrderCard extends StatelessWidget {
   });
 
   @override
+  State<OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<OrderCard> {
+  bool legA = true;
+
+  Leg? legFields;
+
+
+  @override
+  void initState(){
+    super.initState();
+
+    legA = true;
+    legFields = widget.order.legA;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPending = order.status == OrderStatus.pending;
+    final isPending = widget.order.status == OrderStatus.Pending.name;
+
+    void toggleLegA(){
+      setState(() {
+        legA = !legA;
+        if(legA){
+          legFields = widget.order.legA;
+        }
+        else{
+          legFields = widget.order.legB!;
+        }
+      });
+    }
 
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: onView,
+        onTap: widget.onView,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -32,10 +64,10 @@ class OrderCard extends StatelessWidget {
                 children: [
                   // Avatar
                   CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     child: Text(
-                      order.name.isNotEmpty
-                          ? order.name[0].toUpperCase()
+                      widget.order.fullName.isNotEmpty
+                          ? widget.order.fullName[0].toUpperCase()
                           : '?',
                       style: TextStyle(
                         color: theme.colorScheme.primary,
@@ -50,7 +82,7 @@ class OrderCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order.name,
+                          widget.order.fullName,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -58,7 +90,7 @@ class OrderCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          order.email,
+                          widget.order.phone,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade600,
                           ),
@@ -76,29 +108,69 @@ class OrderCard extends StatelessWidget {
               const Divider(height: 20),
 
               // ── Info rows ────────────────────────────────────────────
-              _InfoRow(
-                icon: Icons.phone_outlined,
-                label: 'Phone',
-                value: order.phone,
-              ),
-              const SizedBox(height: 6),
+              // _InfoRow(
+              //   icon: Icons.phone_outlined,
+              //   label: 'Phone',
+              //   value: order.phone,
+              // ),
+              // const SizedBox(height: 6),
+
+              Row(
+                spacing: 4,
+                children: [
+                  GestureDetector(
+                    onTap: toggleLegA,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                          color:  legA ? Theme.of(context).colorScheme.primary : Colors.white
+                        ),
+                    
+                        child: Text("Leg A", style: TextStyle(color: legA ? Colors.white : Colors.grey.shade600),),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: toggleLegA,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 1.5),
+                      decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                          color: !legA
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.white),
+                      child: Text(
+                        "Leg B",
+                        style: TextStyle(color: !legA ? Colors.white : Colors.grey.shade600),
+                      ),
+                    ),
+                  ),
+                ],
+              ), 
+
+              const SizedBox(height: 6), 
+
               _InfoRow(
                 icon: Icons.access_time_outlined,
                 label: 'Time',
-                value: '${order.deliveryTime}  •  ${order.deliveryDate}',
+                value: '${legFields?.time}  •  ${legFields?.date}',
               ),
               const SizedBox(height: 6),
               _InfoRow(
                 icon: Icons.trip_origin_rounded,
                 label: 'Pick-up',
-                value: order.pickLocation,
+                value: legFields!.pickup,
                 iconColor: Colors.green.shade600,
               ),
               const SizedBox(height: 6),
               _InfoRow(
                 icon: Icons.location_on_rounded,
                 label: 'Drop-off',
-                value: order.dropOffLocation,
+                value: legFields!.dropoff,
                 iconColor: Colors.red.shade400,
               ),
 
@@ -106,20 +178,28 @@ class OrderCard extends StatelessWidget {
 
               // ── Action buttons ───────────────────────────────────────
               Row(
+                spacing: 8,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _ActionButton(
                     icon: Icons.visibility_outlined,
                     label: 'View',
                     color: theme.colorScheme.primary,
-                    onTap: onView,
+                    onTap: widget.onView,
                   ),
-                  const SizedBox(width: 8),
+                  if(widget.order.payRate != null)
+                      _ActionButton(
+                        icon: Icons.monetization_on,
+                        label: widget.order.payRate.toString(),
+                        color: Colors.green.shade800,
+                        onTap: null,
+                      ),
+                  if(isPending)
                   _ActionButton(
                     icon: Icons.edit_outlined,
                     label: 'Edit',
                     color: theme.colorScheme.secondary,
-                    onTap: onEdit,
+                    onTap: widget.onEdit,
                   ),
                 ],
               ),
@@ -213,7 +293,7 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _ActionButton({
     required this.icon,

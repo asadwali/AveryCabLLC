@@ -1,39 +1,37 @@
+import 'package:avery_cab_app/controllers/order.controller.dart';
+import 'package:avery_cab_app/utils/constants.dart';
 import 'package:flutter/foundation.dart';
 import '../models/order.dart';
 
 class OrderProvider extends ChangeNotifier {
-  final List<Order> _orders = [
-    Order(
-      name: 'John Smith',
-      email: 'john@example.com',
-      phone: '+1 555-0101',
-      deliveryTime: '10:30 AM',
-      deliveryDate: '2026-05-08',
-      pickLocation: '123 Main St, New York',
-      dropOffLocation: '456 Park Ave, New York',
-      status: OrderStatus.pending,
-    ),
-    Order(
-      name: 'Sarah Connor',
-      email: 'sarah@example.com',
-      phone: '+1 555-0202',
-      deliveryTime: '02:00 PM',
-      deliveryDate: '2026-05-07',
-      pickLocation: '789 Broadway, New York',
-      dropOffLocation: '321 5th Ave, New York',
-      status: OrderStatus.completed,
-    ),
-  ];
+  List<Order> _orders = [];
 
   List<Order> get orders => List.unmodifiable(_orders);
 
+  OrderProvider(){
+    loadOrders();
+  }
+
+  Future<void> loadOrders() async {
+    _orders = await OrderController.list();
+    notifyListeners();
+  }
+
+
+  OrderProvider getById(String id){
+    if(id == Constants.admin_id) return this;
+    _orders = _orders.where((o) => o.userId == id).toList();
+    return this;
+  }
+
   List<Order> getByStatus(OrderStatus? status) {
     if (status == null) return orders;
-    return _orders.where((o) => o.status == status).toList();
+    return _orders.where((o) => o.status == status.name).toList();
   }
 
   void addOrder(Order order) {
     _orders.add(order);
+    OrderController.addOrder(order);
     notifyListeners();
   }
 
@@ -43,18 +41,22 @@ class OrderProvider extends ChangeNotifier {
       _orders[index] = updated;
       notifyListeners();
     }
+
+    OrderController.updateOrder(updated);
   }
 
-  void markCompleted(String id) {
+  void markCompleted(String id, String payRate) {
     final index = _orders.indexWhere((o) => o.id == id);
     if (index != -1) {
-      _orders[index] = _orders[index].copyWith(status: OrderStatus.completed);
+      _orders[index] = _orders[index].copyWith(status: OrderStatus.Completed.name, payRate: payRate);
+      OrderController.updateOrder(_orders[index]);
       notifyListeners();
     }
   }
 
   void deleteOrder(String id) {
     _orders.removeWhere((o) => o.id == id);
+    OrderController.deleteOrder(id);
     notifyListeners();
   }
 }

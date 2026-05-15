@@ -1,5 +1,7 @@
+import 'package:avery_cab_app/widgets/skeleton_order_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import '../models/order.dart';
 import '../providers/order_provider.dart';
 import '../providers/auth_provider.dart';
@@ -17,14 +19,99 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   OrderStatus? _activeFilter; // null = All
 
+  bool showShimmer = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    context.read<OrderProvider>().loadOrders();
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          showShimmer = false;
+        });
+      }
+    });
+  }
+
+  Widget buildOrders(List<Order> orders) {
+    // Show shimmer first
+    if (showShimmer) {
+      return Padding(
+        padding: const EdgeInsets.only(
+          left: 8.0,
+          right: 8.0,
+        ),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: ListView.separated(
+            itemCount: 3,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (_, __) => const OrderCardSkeleton(),
+          ),
+        ),
+      );
+    }
+
+    // Show empty state after shimmer ends
+    if (orders.isEmpty && showShimmer == false) {
+      return _EmptyState(filter: _activeFilter);
+    }
+
+    // Show actual list
+    return ListView.builder(
+      padding: const EdgeInsets.only(
+        bottom: 80,
+        left: 8.0,
+        right: 8.0,
+      ),
+      itemCount: orders.length,
+      itemBuilder: (context, index) {
+        final order = orders[index];
+
+        return OrderCard(
+          order: order,
+          onView: () => _openView(context, order),
+          onEdit: () => _openEdit(context, order),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final orders = context.watch<OrderProvider>().getByStatus(_activeFilter);
+    final orders = context.watch<OrderProvider>().getById(context.read<AuthProvider>().user!.uid).getByStatus(_activeFilter);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orders'),
+        title: Row(
+          spacing: 8,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Center(
+                  child: Image.asset('assets/images/avery_cab_icon.png',
+                      height: 24)),
+            ),
+            const Text('Bookings'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -43,12 +130,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // ── Order count ───────────────────────────────────────────────
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Row(
               children: [
                 Text(
-                  '${orders.length} order${orders.length != 1 ? 's' : ''}',
+                  '${orders.length} Booking${orders.length != 1 ? 's' : ''}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
@@ -58,22 +144,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // ── List ──────────────────────────────────────────────────────
           Expanded(
-            child: orders.isEmpty
-                ? _EmptyState(filter: _activeFilter)
-                : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 80),
-                    itemCount: orders.length,
-                    itemBuilder: (context, index) {
-                      final order = orders[index];
-                      return OrderCard(
-                        order: order,
-                        onView: () => _openView(context, order),
-                        onEdit: () => _openEdit(context, order),
-                      );
-                    },
-                  ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: buildOrders(orders),
+            ),
           ),
         ],
       ),
@@ -111,8 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Cancel')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Logout',
-                  style: TextStyle(color: Colors.red))),
+              child: const Text('Logout', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -150,15 +224,15 @@ class _FilterStrip extends StatelessWidget {
           const SizedBox(width: 8),
           _Capsule(
             label: 'Pending',
-            selected: activeFilter == OrderStatus.pending,
-            onTap: () => onChanged(OrderStatus.pending),
+            selected: activeFilter == OrderStatus.Pending,
+            onTap: () => onChanged(OrderStatus.Pending),
             selectedColor: Colors.orange,
           ),
           const SizedBox(width: 8),
           _Capsule(
             label: 'Completed',
-            selected: activeFilter == OrderStatus.completed,
-            onTap: () => onChanged(OrderStatus.completed),
+            selected: activeFilter == OrderStatus.Completed,
+            onTap: () => onChanged(OrderStatus.Completed),
             selectedColor: Colors.green,
           ),
         ],
@@ -187,10 +261,9 @@ class _Capsule extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
         decoration: BoxDecoration(
-          color: selected ? color : Colors.white.withOpacity(0.15),
+          color: selected ? color : Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
             color: selected ? color : Colors.white38,
@@ -203,7 +276,9 @@ class _Capsule extends StatelessWidget {
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: selected
-                ? (selectedColor != null ? Colors.white : Theme.of(context).colorScheme.primary)
+                ? (selectedColor != null
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.primary)
                 : Colors.white,
           ),
         ),
@@ -224,7 +299,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = filter == null
         ? 'No orders yet'
-        : filter == OrderStatus.pending
+        : filter == OrderStatus.Pending
             ? 'No pending orders'
             : 'No completed orders';
 

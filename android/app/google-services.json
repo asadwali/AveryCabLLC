@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "86909339188",
+    "project_id": "avery-cab-llc",
+    "storage_bucket": "avery-cab-llc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86909339188:android:e55b8bda272a618187ac61",
+        "android_client_info": {
+          "package_name": "com.itechiasolutions.avery_cab"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOLwILlYvI7NKUKriscnfiisYo0udB_oY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86909339188:android:80e43df620eed66987ac61",
+        "android_client_info": {
+          "package_name": "com.itechiasolutions.averycab"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOLwILlYvI7NKUKriscnfiisYo0udB_oY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

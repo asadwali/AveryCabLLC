@@ -1,13 +1,75 @@
+import 'package:avery_cab_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/order.dart';
 import '../providers/order_provider.dart';
 import 'order_form_screen.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final Order order;
 
   const OrderDetailScreen({super.key, required this.order});
+
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  final _payRateCtrl = TextEditingController(text: '0.00');
+
+  double baseFare = 0.0;
+  double taxAmount = 0.0;
+  double totalFare = 0.0;
+
+  static const double taxPercent = 6.35;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _payRateCtrl.text = widget.order.payRate.toString();
+
+    final storedTotal = widget.order.payRate != null
+        ? double.parse(widget.order.payRate!)
+        : 0.00;
+
+    if (storedTotal > 0) {
+      baseFare = storedTotal / (1 + (taxPercent / 100));
+
+      totalFare = storedTotal;
+
+      taxAmount = totalFare - baseFare;
+
+      _payRateCtrl.text = totalFare.toStringAsFixed(2);
+
+      setState(() {});
+    }
+  }
+
+  void _calculateTax(String? value) {
+    if (value != null && value.isNotEmpty) {
+      final double value_ = double.parse(value);
+      final base = value_;
+      final total = base * (1 + (taxPercent / 100));
+
+      setState(() {
+        baseFare = base;
+        totalFare = total;
+      });
+    } else {
+      setState(() {
+        baseFare = 0;
+        totalFare = 0;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    _payRateCtrl.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,21 +77,22 @@ class OrderDetailScreen extends StatelessWidget {
     final liveOrder = context
         .watch<OrderProvider>()
         .orders
-        .firstWhere((o) => o.id == order.id, orElse: () => order);
+        .firstWhere((o) => o.id == widget.order.id, orElse: () => widget.order);
 
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    final isPending = liveOrder.status == OrderStatus.pending;
+    final isPending = liveOrder.status == OrderStatus.Pending.name;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Order Details'),
+        title: const Text('Booking Details'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit',
-            onPressed: () => _openEdit(context, liveOrder),
-          ),
+          if (isPending)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit',
+              onPressed: () => _openEdit(context, liveOrder),
+            ),
         ],
       ),
       body: SingleChildScrollView(
@@ -41,38 +104,139 @@ class OrderDetailScreen extends StatelessWidget {
             const SizedBox(height: 20),
 
             // ── Details section ───────────────────────────────────────
+            // _DetailSection(
+            //   icon: Icons.person_outline,
+            //   title: 'Customer',
+            //   children: [
+            //     _DetailRow(label: 'Name', value: liveOrder.fullName),
+            //     _DetailRow(label: 'Phone', value: liveOrder.phone),
+            //   ],
+            // ),
+            // const SizedBox(height: 14),
             _DetailSection(
-              icon: Icons.person_outline,
-              title: 'Customer',
+              title: 'Leg A',
               children: [
-                _DetailRow(label: 'Name', value: liveOrder.name),
-                _DetailRow(label: 'Email', value: liveOrder.email),
-                _DetailRow(label: 'Phone', value: liveOrder.phone),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _DetailSection(
-              icon: Icons.schedule_outlined,
-              title: 'Schedule',
-              children: [
-                _DetailRow(label: 'Time', value: liveOrder.deliveryTime),
-                _DetailRow(label: 'Date', value: liveOrder.deliveryDate),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _DetailSection(
-              icon: Icons.route_outlined,
-              title: 'Route',
-              children: [
+                _DetailRow(label: 'Time', value: liveOrder.legA.time),
+                _DetailRow(label: 'Date', value: liveOrder.legA.date),
                 _DetailRow(
                   label: 'Pick-up',
-                  value: liveOrder.pickLocation,
+                  value: liveOrder.legA.pickup,
                   valueColor: Colors.green.shade700,
                 ),
                 _DetailRow(
                   label: 'Drop-off',
-                  value: liveOrder.dropOffLocation,
+                  value: liveOrder.legA.dropoff,
                   valueColor: Colors.red.shade500,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _DetailSection(
+              title: 'Leg B',
+              children: [
+                _DetailRow(label: 'Time', value: liveOrder.legB!.time),
+                _DetailRow(label: 'Date', value: liveOrder.legB!.date),
+                _DetailRow(
+                  label: 'Pick-up',
+                  value: liveOrder.legB!.pickup,
+                  valueColor: Colors.green.shade700,
+                ),
+                _DetailRow(
+                  label: 'Drop-off',
+                  value: liveOrder.legB!.dropoff,
+                  valueColor: Colors.red.shade500,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _DetailSection(
+              icon: Icons.attach_money_outlined,
+              title: 'Pricing',
+              children: [
+                TextFormField(
+                  controller: _payRateCtrl,
+                  keyboardType: TextInputType.number,
+                  readOnly: !isPending,
+                  onChanged: (value) => _calculateTax(value),
+                  decoration: InputDecoration(
+                    labelText: 'Total Fare',
+                    prefixIcon: Icon(Icons.attach_money_rounded,
+                        color: Colors.green.shade600),
+                    focusedBorder: !isPending ? OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)) : null,
+                  ),
+                ),
+                const SizedBox(
+                  height: 4,
+                ),
+                Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      spacing: 8,
+                      children: [
+                        const Text(
+                          'Base Fare',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.blueGrey),
+                          textAlign: TextAlign.start,
+                        ),
+                        Text(
+                          baseFare.toStringAsFixed(2),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.black),
+                          textAlign: TextAlign.start,
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      spacing: 8,
+                      children: [
+                        const Text(
+                          'Tax',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.blueGrey),
+                          textAlign: TextAlign.start,
+                        ),
+                        Text(
+                          "${taxAmount.toStringAsFixed(2)}%",
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.black),
+                          textAlign: TextAlign.start,
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      spacing: 8,
+                      children: [
+                        const Text(
+                          'Total Fare',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.blueGrey),
+                          textAlign: TextAlign.start,
+                        ),
+                        Text(
+                          totalFare.toStringAsFixed(2),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.black),
+                          textAlign: TextAlign.start,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -87,7 +251,8 @@ class OrderDetailScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade600,
                   ),
-                  onPressed: () => _markComplete(context, liveOrder.id),
+                  onPressed: () => _markComplete(
+                      context, liveOrder.id, totalFare.toStringAsFixed(2)),
                   icon: const Icon(Icons.check_circle_outline),
                   label: const Text('Mark as Completed'),
                 ),
@@ -100,8 +265,8 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  void _markComplete(BuildContext context, String id) {
-    context.read<OrderProvider>().markCompleted(id);
+  void _markComplete(BuildContext context, String id, String payRate) {
+    context.read<OrderProvider>().markCompleted(id, payRate);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Order marked as completed'),
@@ -150,7 +315,7 @@ class _HeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: primary.withOpacity(0.35),
+            color: primary.withValues(alpha:0.35),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -163,9 +328,11 @@ class _HeroCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: Colors.white.withOpacity(0.2),
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
                 child: Text(
-                  order.name.isNotEmpty ? order.name[0].toUpperCase() : '?',
+                  order.fullName.isNotEmpty
+                      ? order.fullName[0].toUpperCase()
+                      : '?',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -179,7 +346,7 @@ class _HeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order.name,
+                      order.fullName,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -188,9 +355,9 @@ class _HeroCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      order.email,
+                      order.phone,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha:0.8),
                         fontSize: 13,
                       ),
                     ),
@@ -198,36 +365,44 @@ class _HeroCard extends StatelessWidget {
                 ),
               ),
               // Status badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: isPending
-                      ? Colors.orange.withOpacity(0.9)
-                      : Colors.green.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isPending ? 'Pending' : 'Completed',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 16),
-          Divider(color: Colors.white.withOpacity(0.25), height: 1),
+          Divider(color: Colors.white.withValues(alpha: 0.25), height: 1),
           const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.access_time, color: Colors.white70, size: 15),
-              const SizedBox(width: 6),
-              Text(
-                '${order.deliveryTime}  ·  ${order.deliveryDate}',
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+              Row(
+                spacing: 6,
+                children: [
+                  const Icon(Icons.access_time,
+                      color: Colors.white70, size: 15),
+                  Text(
+                    order.legA.time,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ],
+              ),
+              Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isPending
+                        ? Colors.orange.withValues(alpha: 0.9)
+                        : Colors.green.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isPending ? 'Pending' : 'Completed',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -242,12 +417,12 @@ class _HeroCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DetailSection extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
   final String title;
   final List<Widget> children;
 
   const _DetailSection({
-    required this.icon,
+    this.icon,
     required this.title,
     required this.children,
   });
@@ -261,7 +436,7 @@ class _DetailSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -274,7 +449,7 @@ class _DetailSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             child: Row(
               children: [
-                Icon(icon, size: 17, color: primary),
+                if (icon != null) Icon(icon, size: 17, color: primary),
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -292,6 +467,7 @@ class _DetailSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
             ),
           ),

@@ -1,20 +1,23 @@
-import 'package:avery_cab_app/screens/signup_screen.dart';
+import 'package:avery_cab_app/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
+  final _confirmEmailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   bool _loading = false;
   String? _errorMessage;
 
@@ -38,20 +41,37 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     final error = await context
         .read<AuthProvider>()
-        .login(_emailCtrl.text.trim(), _passwordCtrl.text);
-
-     if (!mounted) return;
+        .register(_emailCtrl.text.trim(), _passwordCtrl.text);
 
     setState(() {
       _loading = false;
       _errorMessage = error;
     });
 
-
-    if(mounted && error == null){
-      Navigator.of(context).popUntil((route) => route.isFirst);
+    if(error == null && mounted){
+        Navigator.of(context).popUntil(
+          (route) => route.isFirst,
+        );
     }
   }
+
+  final topFieldBorder = const OutlineInputBorder(
+    borderRadius: BorderRadius.only(
+      topLeft: Radius.circular(12),
+      topRight: Radius.circular(12),
+      bottomLeft: Radius.circular(0),
+      bottomRight: Radius.circular(0),
+    ),
+  );
+
+  final bottomFieldBorder = const OutlineInputBorder(
+    borderRadius: BorderRadius.only(
+      topLeft: Radius.circular(0),
+      topRight: Radius.circular(0),
+      bottomLeft: Radius.circular(12),
+      bottomRight: Radius.circular(12),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +79,15 @@ class _LoginScreenState extends State<LoginScreen> {
     final primary = theme.colorScheme.primary;
 
     return Scaffold(
-      body: SafeArea(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [primary, const Color(0xFF3949AB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -74,16 +102,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Avery Cab LLC',
                     style: theme.textTheme.headlineMedium?.copyWith(
-                      color: primary,
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Order Management Portal',
+                    'Booking Management Portal',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: primary,
+                      color: Colors.white70,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -108,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Sign In',
+                            'Sign up',
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: primary,
@@ -122,10 +150,33 @@ class _LoginScreenState extends State<LoginScreen> {
                             keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(
                               labelText: 'Email',
+                              labelStyle: TextStyle(
+                                  color: Colors.grey, fontSize: 12),
                               prefixIcon: Icon(Icons.email_outlined),
+                              
                             ),
                             validator: (v) {
                               if (v == null || v.isEmpty) return 'Enter email';
+                              if (!v.contains('@')) return 'Enter valid email';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 4),
+                          TextFormField(
+                            controller: _confirmEmailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Confirm Email',
+                              labelStyle: TextStyle(
+                                  color: Colors.grey, fontSize: 12),
+                              prefixIcon: Icon(Icons.email_outlined),
+                              
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty)
+                                {return 'Enter confirm email';}
+                              if (v != _emailCtrl.text)
+                                {return 'Emails do not match';}
                               if (!v.contains('@')) return 'Enter valid email';
                               return null;
                             },
@@ -138,6 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
                               labelText: 'Password',
+                              labelStyle: const TextStyle(
+                                  color: Colors.grey, fontSize: 12),
                               prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -148,11 +201,44 @@ class _LoginScreenState extends State<LoginScreen> {
                                 onPressed: () => setState(
                                     () => _obscurePassword = !_obscurePassword),
                               ),
+                              
                             ),
                             validator: (v) {
-                              if (v == null || v.isEmpty)
+                              if (v == null || v.isEmpty) {
                                 return 'Enter password';
+                              }
                               if (v.length < 6) return 'Min 6 characters';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 4),
+
+                          TextFormField(
+                            controller: _confirmPasswordCtrl,
+                            obscureText: _obscureConfirmPassword,
+                            decoration: InputDecoration(
+                              labelText: 'Confirm Password',
+                              labelStyle: const TextStyle(
+                                  color: Colors.grey, fontSize: 12),
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                                onPressed: () => setState(() =>
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword),
+                              ),
+                              
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return 'Enter password';
+                              }
+                              if (v != _passwordCtrl.text)
+                                {return 'Passwords do not match';}
                               return null;
                             },
                           ),
@@ -187,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Text('Login'),
+                                  : const Text('Sign up'),
                             ),
                           ),
                         ],
@@ -195,56 +281,58 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //   children: [
-                  //     Text(
-                  //       'Don\'t have an account?',
-                  //       style: theme.textTheme.bodyMedium?.copyWith(
-                  //         color: Colors.white70,
-                  //       ),),
-
-                  //     TextButton(
-                  //       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen())),
-                  //       child: Text(
-                  //         'Sign Up',
-                  //         style: theme.textTheme.bodyMedium?.copyWith(
-                  //           color: Colors.white,
-                  //           fontWeight: FontWeight.bold,
-                  //         ),
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
-
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Already have an account?',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white70,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const LoginScreen())),
+                        child: Text(
+                          'Login',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 32),
 
                   RichText(
-                    text: TextSpan(
+                    text: const TextSpan(
                       style: TextStyle(
-                        color: primary,
+                        color: Colors.white70,
                         fontSize: 12,
                         letterSpacing: 0.4,
                       ),
                       children: [
-                        const TextSpan(text: 'Designed & Developed by ', style: TextStyle(fontWeight: FontWeight.w400)),
+                        TextSpan(text: 'Powered by '),
                         TextSpan(
                           text: 'Itechia Solutions',
                           style: TextStyle(
-                            color: primary,
+                            color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   )
-                  // Text('© 2023 Avery Cab LLC. All rights reserved.')
                 ],
               ),
             ),
           ),
         ),
-      ) ;
+      ),
+    );
   }
 
   Widget _buildLogo(ThemeData theme) {

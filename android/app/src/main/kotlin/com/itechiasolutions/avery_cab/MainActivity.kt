@@ -1,4 +1,4 @@
-package com.averycab.avery_cab_app
+package com.itechiasolutions.avery_cab
 
 import io.flutter.embedding.android.FlutterActivity
 

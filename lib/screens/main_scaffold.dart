@@ -36,8 +36,9 @@ class _MainScaffoldState extends State<MainScaffold> {
           }
           setState(() => _selectedIndex = index);
         },
-        backgroundColor: Colors.white,
-        indicatorColor: primary.withOpacity(0.12),
+        height: kBottomNavigationBarHeight,
+        backgroundColor: const Color(0xFFf3f6ff),
+        indicatorColor: primary.withValues(alpha: 0.12),
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.home_outlined),
@@ -47,7 +48,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           NavigationDestination(
             icon: const Icon(Icons.add_circle_outline),
             selectedIcon: Icon(Icons.add_circle_rounded, color: primary),
-            label: 'Add Order',
+            label: 'Add Booking',
           ),
         ],
       ),

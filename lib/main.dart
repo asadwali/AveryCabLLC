@@ -1,3 +1,6 @@
+import 'package:avery_cab_app/firebase_options.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,8 +9,11 @@ import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_scaffold.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform
+  );
   runApp(const AveryCabApp());
 }
 
@@ -43,7 +49,7 @@ class AveryCabApp extends StatelessWidget {
         brightness: Brightness.light,
       ),
       textTheme: GoogleFonts.poppinsTextTheme(),
-      scaffoldBackgroundColor: const Color(0xFFF5F6FA),
+      scaffoldBackgroundColor: const Color(0xFFf3f6ff),
       appBarTheme: AppBarTheme(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
@@ -87,7 +93,7 @@ class AveryCabApp extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -106,7 +112,9 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        if (auth.isLoggedIn) return const MainScaffold();
+        if (auth.isLoggedIn) {
+          return const MainScaffold();
+        }
         return const LoginScreen();
       },
     );
