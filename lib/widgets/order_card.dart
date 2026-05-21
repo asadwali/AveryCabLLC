@@ -187,7 +187,7 @@ class _OrderCardState extends State<OrderCard> {
                     color: theme.colorScheme.primary,
                     onTap: widget.onView,
                   ),
-                  if(widget.order.payRate != null)
+                  if(widget.order.payRate != null && widget.order.payRate != 'N/A')
                       _ActionButton(
                         icon: Icons.monetization_on,
                         label: widget.order.payRate.toString(),

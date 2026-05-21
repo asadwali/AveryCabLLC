@@ -27,10 +27,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   void initState() {
     super.initState();
 
-    _payRateCtrl.text = widget.order.payRate.toString();
+    if(widget.order.payRate != null && widget.order.payRate != 'N/A'){
+      _payRateCtrl.text = widget.order.payRate.toString();
+    }
 
     final storedTotal = widget.order.payRate != null
-        ? double.parse(widget.order.payRate!)
+        ? double.tryParse(widget.order.payRate!) ?? 0.00
         : 0.00;
 
     if (storedTotal > 0) {
@@ -103,16 +105,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _HeroCard(order: liveOrder, isPending: isPending, theme: theme),
             const SizedBox(height: 20),
 
-            // ── Details section ───────────────────────────────────────
-            // _DetailSection(
-            //   icon: Icons.person_outline,
-            //   title: 'Customer',
-            //   children: [
-            //     _DetailRow(label: 'Name', value: liveOrder.fullName),
-            //     _DetailRow(label: 'Phone', value: liveOrder.phone),
-            //   ],
-            // ),
-            // const SizedBox(height: 14),
             _DetailSection(
               title: 'Leg A',
               children: [
@@ -192,11 +184,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                       ],
                     ),
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       spacing: 8,
                       children: [
-                        const Text(
+                        Text(
                           'Tax',
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
@@ -205,8 +197,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           textAlign: TextAlign.start,
                         ),
                         Text(
-                          "${taxAmount.toStringAsFixed(2)}%",
-                          style: const TextStyle(
+                          "$taxPercent%",
+                          style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                               color: Colors.black),
